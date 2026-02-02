@@ -123,7 +123,7 @@ kotlin {
         val jvmMain by getting {
             dependencies {
                 implementation(deps.get("io.ktor:ktor-client-cio", "io.ktor"))
-                implementation(deps.get("com.github.toasterofbread.compose-webview-multiplatform:compose-webview-multiplatform"))
+//                implementation(deps.get("com.github.toasterofbread.compose-webview-multiplatform:compose-webview-multiplatform"))
                 implementation(deps.get("org.bitbucket.ijabz:jaudiotagger"))
             }
         }
@@ -134,6 +134,7 @@ kotlin {
                 api("androidx.core:core-ktx:1.13.1")
                 api("androidx.appcompat:appcompat:1.7.0")
 
+                implementation("io.github.kevinnzou:compose-webview-multiplatform:2.0.3-syk")
                 implementation("androidx.palette:palette:1.0.0")
                 implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.1.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.7.3")
