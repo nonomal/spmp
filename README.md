@@ -1,17 +1,13 @@
-# Notice: SpMp is currently mostly non-functional
+# SpMp has been succeeded by [Kanon](https://gitlab.com/syk.sh/kanon)
 
-Recent YouTube API changes made audio streaming from third-party applications more difficult.
+SpMp was my first large-scale Android/Compose project, and after over two years of development it became very difficult to maintain. 
+Kanon is a rewrite-turned-successor of SpMp, and shares the same basic features and core design.
 
-Until a fix is implemented, streaming music in SpMp usually doesn't work. The project isn't currently under active development so this might not happen for some time.
+While SpMp remains available on this repository, it has not been actively maintained since early 2025.
 
-<br>
-<br>
-<br>
+---
 
-<p>
-    <a href="readme/README-ja.md">日本語のREADMEへ</a>
-    <a href="https://discord.gg/B4uY4FkkJ3"><img src="https://img.shields.io/discord/1133321339495788625?style=for-the-badge&logo=discord&label=Discord&color=4f58d6" align="right"></a>
-</p>
+Original README:
 
 <br>
 
