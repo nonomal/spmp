@@ -4,6 +4,7 @@ import org.gradle.internal.os.OperatingSystem
 import org.gradle.jvm.tasks.Jar
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.compose.desktop.application.tasks.AbstractJPackageTask
+import plugin.shared.execOperations
 import plugin.spmp.SpMpDeps
 import plugin.spmp.getDeps
 import plugins.shared.DesktopUtils
@@ -186,7 +187,7 @@ abstract class ActuallyPackageAppImageTask: DefaultTask() {
 
         runBlocking {
             project.logger.lifecycle("Executing appimagetool with arch $arch and output ${appimage_output.relativeTo(project.rootDir)}")
-            project.exec {
+            project.execOperations.exec {
                 environment("ARCH", arch)
                 workingDir = appimage_dst
                 executable = "appimagetool"

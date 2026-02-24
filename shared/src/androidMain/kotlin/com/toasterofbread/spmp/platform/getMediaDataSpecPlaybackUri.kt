@@ -120,7 +120,7 @@ internal suspend fun getMediaDataSpecPlaybackUri(
         )
 
     try {
-        song.LoudnessDb.setNotNull(format.loudness_db, context.database)
+        song.LoudnessDb.setNotNull(format.loudnessDb, context.database)
     }
     catch (e: Throwable) {
         e.printStackTrace()

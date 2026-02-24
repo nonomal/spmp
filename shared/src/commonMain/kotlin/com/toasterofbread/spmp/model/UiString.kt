@@ -14,6 +14,7 @@ import com.toasterofbread.spmp.resources.Language
 import com.toasterofbread.spmp.resources.getResourceEnvironment
 import com.toasterofbread.spmp.service.playercontroller.PlayerState
 import dev.toastbits.composekit.util.model.Locale
+import dev.toastbits.ytmkt.uistrings.CustomUiString
 import dev.toastbits.ytmkt.uistrings.RawUiString
 import dev.toastbits.ytmkt.uistrings.UiString
 import dev.toastbits.ytmkt.uistrings.YoutubeUiString
@@ -24,7 +25,7 @@ import spmp.shared.generated.resources.allStringResources
 
 data class AppUiString(
     val string_key: String
-): UiString {
+): CustomUiString {
     private var strings: MutableMap<String, String> = mutableMapOf()
 
     override suspend fun getString(language: String): String =
@@ -51,7 +52,7 @@ fun UiString.observe(): String {
 fun UiString.serialise(): String =
     when (this) {
         is AppUiString -> "A,$string_key"
-        is RawUiString -> "R,$raw_string"
+        is RawUiString -> "R,$rawString"
         is YoutubeUiString -> "Y,${type.ordinal},$index"
         else -> throw NotImplementedError(this::class.toString())
     }

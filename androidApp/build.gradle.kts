@@ -1,13 +1,12 @@
 @file:Suppress("UnstableApiUsage")
 
+import com.android.build.api.dsl.ApplicationVariantDimension
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
-import java.io.FileInputStream
-import java.util.Properties
-import com.android.build.api.dsl.ApplicationVariantDimension
-import org.jetbrains.kotlin.gradle.plugin.KotlinDependencyHandler
 import plugin.spmp.SpMpDeps
 import plugin.spmp.getDeps
+import java.io.FileInputStream
+import java.util.Properties
 
 plugins {
     kotlin("multiplatform")
@@ -98,14 +97,14 @@ android {
 
         getByName("debug") {
             applicationIdSuffix = ".debug"
-            setProperty("archivesBaseName", getApkName())
+            project.ext.set("archivesBaseName", getApkName())
 
             manifestPlaceholders["appAuthRedirectScheme"] = "com.toasterofbread.spmp.debug"
             manifestPlaceholders["appName"] = getString("app_name_debug")
             signingConfig = signingConfigs.getByName("main")
         }
         getByName("release") {
-            setProperty("archivesBaseName", getApkName())
+            project.ext.set("archivesBaseName", getApkName())
 
             isMinifyEnabled = true
             isShrinkResources = true
