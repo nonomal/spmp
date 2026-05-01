@@ -112,3 +112,5 @@
 -dontwarn javax.swing.text.BadLocationException
 -dontwarn javax.swing.tree.DefaultTreeSelectionModel
 -dontwarn javax.swing.tree.TreeModel
+-dontwarn com.google.re2j.*
+-dontwarn javax.script.ScriptEngineFactory
