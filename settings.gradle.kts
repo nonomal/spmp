@@ -35,7 +35,7 @@ pluginManagement {
         val sqldelight_version: String = extra["sqldelight.version"] as String
         id("app.cash.sqldelight").version(sqldelight_version)
 
-        id("dev.toastbits.gradleremoterunner").version("0.0.4")
+        id("dev.toastbits.gradleremoterunner").version("0.0.6")
     }
 }
 
