@@ -54,6 +54,12 @@
     </categories>
 
     <releases>
+        <release version="v0.4.3" date="2026-05-01">
+            <url type="details">https://github.com/toasterofbread/spmp/releases/tag/v0.4.3</url>
+            <description>
+                <p>Pre-deprecation patch release. Users are advised to migrate to https://gitlab.com/syk.sh/kanon.</p>
+            </description>
+        </release>
         <release version="v0.4.2" date="2024-10-25">
             <url type="details">https://github.com/toasterofbread/spmp/releases/tag/v0.4.2</url>
             <description>

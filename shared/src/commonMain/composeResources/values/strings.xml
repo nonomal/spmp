@@ -13,10 +13,11 @@
         - ONE TIME, THEN REMOVE ME:
             - Merge https://gitlab.com/toasterofbread/fdroiddata after creating release and tag
                 - This updates the referenced location of strings.xml used for update checking
-                - Cannot be merged before release, because UpdateCheckData must be valid for at least one existing tag
+                - Cannot be merged before release, because UpdateCheckDatas
+                 must be valid for at least one existing tag
     -->
-    <string name="version_string" translatable="false">0.4.2</string>
-    <string name="version_code" translatable="false">22</string>
+    <string name="version_string" translatable="false">0.4.3</string>
+    <string name="version_code" translatable="false">23</string>
 
     <string name="app_name" translatable="false">SpMp</string>
     <string name="app_name_debug" translatable="false">SpMp (debug)</string>
