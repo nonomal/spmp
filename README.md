@@ -4,6 +4,7 @@ SpMp was my first large-scale Android/Compose project, and after over two years 
 Kanon is a rewrite-turned-successor of SpMp, and shares the same basic features and core design.
 
 While SpMp remains available on this repository, it is no longer maintained, and has not been since late 2024.
+If you use SpMp, please be aware that you may encounter bugs or broken features, and that these will not be fixed.
 
 ---
 
