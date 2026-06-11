@@ -5,17 +5,15 @@ import androidx.compose.foundation.interaction.*
 import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalDensity
-import dev.toastbits.composekit.platform.vibrateShort
+import dev.toastbits.composekit.context.vibrateShort
 import com.toasterofbread.spmp.model.settings.category.*
 import com.toasterofbread.spmp.platform.playerservice.PlayerService
 import com.toasterofbread.spmp.service.playercontroller.PlayerState
-import com.toasterofbread.spmp.ui.layout.nowplaying.container.npAnchorToDp
 import kotlinx.coroutines.delay
 
 private const val OVERSCROLL_CLEAR_DISTANCE_THRESHOLD_DP: Float = 5f
@@ -46,9 +44,9 @@ internal fun Modifier.playerOverscroll(
     val density: Density = LocalDensity.current
     var player_alpha: Float by remember { mutableStateOf(1f) }
 
-    val overscroll_clear_enabled: Boolean by player.settings.player.MINI_OVERSCROLL_CLEAR_ENABLED.observe()
-    val overscroll_clear_time: Float by player.settings.player.MINI_OVERSCROLL_CLEAR_TIME.observe()
-    val overscroll_clear_mode: OverscrollClearMode by player.settings.player.MINI_OVERSCROLL_CLEAR_MODE.observe()
+    val overscroll_clear_enabled: Boolean by player.settings.Player.MINI_OVERSCROLL_CLEAR_ENABLED.observe()
+    val overscroll_clear_time: Float by player.settings.Player.MINI_OVERSCROLL_CLEAR_TIME.observe()
+    val overscroll_clear_mode: OverscrollClearMode by player.settings.Player.MINI_OVERSCROLL_CLEAR_MODE.observe()
 
     LaunchedEffect(controller, swipe_interactions.isNotEmpty(), overscroll_clear_enabled) {
         if (!overscroll_clear_enabled || controller == null) {
@@ -67,7 +65,7 @@ internal fun Modifier.playerOverscroll(
         while (swipe_interactions.isNotEmpty()) {
             delay(delta)
 
-            if (controller.song_count == 0 && overscroll_clear_mode == OverscrollClearMode.NONE_IF_QUEUE_EMPTY) {
+            if (controller.item_count == 0 && overscroll_clear_mode == OverscrollClearMode.NONE_IF_QUEUE_EMPTY) {
                 continue
             }
 
@@ -83,12 +81,12 @@ internal fun Modifier.playerOverscroll(
                 if (!triggered && time_below_threshold >= time_threshold) {
                     if (
                         overscroll_clear_mode == OverscrollClearMode.ALWAYS_HIDE
-                        || (overscroll_clear_mode == OverscrollClearMode.HIDE_IF_QUEUE_EMPTY && controller.song_count == 0)
+                        || (overscroll_clear_mode == OverscrollClearMode.HIDE_IF_QUEUE_EMPTY && controller.item_count == 0)
                     ) {
                         controller.service_player.cancelSession()
                     }
 
-                    if (controller.song_count > 0) {
+                    if (controller.item_count > 0) {
                         controller.service_player.clearQueue()
                     }
 

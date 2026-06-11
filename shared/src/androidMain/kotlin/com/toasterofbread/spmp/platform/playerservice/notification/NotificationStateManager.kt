@@ -5,8 +5,8 @@ import android.media.session.PlaybackState
 import android.os.SystemClock
 import androidx.media3.common.Player
 import com.toasterofbread.spmp.platform.playerservice.PlayerServiceNotificationCustomAction
-import com.toasterofbread.spmp.shared.R
-import dev.toastbits.composekit.utils.common.launchSingle
+import com.toasterofbread.spmp.ui.getAndroidIcon
+import dev.toastbits.composekit.util.platform.launchSingle
 import dev.toastbits.ytmkt.model.external.SongLikedStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -14,10 +14,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.withContext
 
-class NotificationStateManager(
-    private val media_session: MediaSession,
-    private val player: Player
-) {
+class NotificationStateManager(private val media_session: MediaSession) {
     var current: NotificationState = NotificationState()
         private set
 
@@ -27,14 +24,16 @@ class NotificationStateManager(
         playback_state: Int? = current.playback_state,
         paused: Boolean = current.paused,
         current_liked_status: SongLikedStatus? = current.current_liked_status,
-        authenticated: Boolean = current.authenticated
+        authenticated: Boolean = current.authenticated,
+        position_ms: Long? = current.position_ms
     ) {
         val new_state: NotificationState =
             NotificationState(
                 playback_state,
                 paused,
                 current_liked_status,
-                authenticated
+                authenticated,
+                position_ms
             )
 
         if (new_state == current) {
@@ -58,7 +57,7 @@ class NotificationStateManager(
         state_builder.setState(
             playback_state
                 ?: if (paused) PlaybackState.STATE_PAUSED else PlaybackState.STATE_PLAYING,
-            player.currentPosition,
+            position_ms ?: 0,
             if (paused) 0f else 1f,
             SystemClock.elapsedRealtime()
         )
@@ -77,20 +76,7 @@ class NotificationStateManager(
             PlaybackState.CustomAction.Builder(
                 like_action.name,
                 like_action.name,
-                if (authenticated)
-                    when (current_liked_status) {
-                        null,
-                        SongLikedStatus.NEUTRAL -> R.drawable.ic_thumb_up_off
-                        SongLikedStatus.LIKED -> R.drawable.ic_thumb_up
-                        SongLikedStatus.DISLIKED -> R.drawable.ic_thumb_down
-                    }
-                else
-                    when (current_liked_status) {
-                        null,
-                        SongLikedStatus.DISLIKED,
-                        SongLikedStatus.NEUTRAL -> R.drawable.ic_heart_off
-                        SongLikedStatus.LIKED -> R.drawable.ic_heart
-                    }
+                current_liked_status.getAndroidIcon(authenticated)
             ).build()
         )
 

@@ -13,7 +13,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,7 +24,7 @@ import com.toasterofbread.spmp.model.mediaitem.song.Song
 import com.toasterofbread.spmp.platform.playerservice.PlayerService
 import com.toasterofbread.spmp.ui.component.HorizontalFuriganaText
 import com.toasterofbread.spmp.service.playercontroller.PlayerState
-import dev.toastbits.composekit.utils.common.thenIf
+import dev.toastbits.composekit.util.thenIf
 import org.jetbrains.compose.resources.stringResource
 import spmp.shared.generated.resources.Res
 import spmp.shared.generated.resources.lyrics_sync_press_button_when_line_begins
@@ -49,7 +48,7 @@ fun LyricsSyncMenu(
     val service: PlayerService? = player.controller
 
     LaunchedEffect(line_index) {
-        service?.seekTo(
+        service?.seekToTime(
             lyrics.lines[line_index].getLineRange().first - SONG_SEEK_MS
         )
     }

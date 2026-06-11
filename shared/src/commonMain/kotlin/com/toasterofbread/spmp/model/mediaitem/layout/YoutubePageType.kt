@@ -1,11 +1,12 @@
 package com.toasterofbread.spmp.model.mediaitem.layout
 
+import com.toasterofbread.spmp.model.mediaitem.enums.MediaItemType
 import com.toasterofbread.spmp.model.mediaitem.getMediaItemFromUid
 import com.toasterofbread.spmp.model.mediaitem.getUid
 import com.toasterofbread.spmp.model.mediaitem.toMediaItemRef
-import com.toasterofbread.spmp.model.mediaitem.enums.MediaItemType
 import com.toasterofbread.spmp.platform.getUiLanguage
 import com.toasterofbread.spmp.service.playercontroller.PlayerState
+import dev.toastbits.ytmkt.model.external.CustomYoutubePage
 import dev.toastbits.ytmkt.model.external.ListPageBrowseIdYoutubePage
 import dev.toastbits.ytmkt.model.external.MediaItemYoutubePage
 import dev.toastbits.ytmkt.model.external.PlainYoutubePage
@@ -22,21 +23,21 @@ enum class YoutubePageType {
                 MediaItem -> {
                     val split: List<String?> = data.split(VIEW_MORE_SPLIT_CHAR, limit = 3).map { it.ifBlank { null } }
                     return MediaItemYoutubePage(
-                        browse_media_item = getMediaItemFromUid(split[0]!!),
-                        browse_params = split.getOrNull(1),
-                        media_item = split.getOrNull(2)?.let { getMediaItemFromUid(it) }
+                        browseMediaItem = getMediaItemFromUid(split[0]!!),
+                        browseParams = split.getOrNull(1),
+                        mediaItem = split.getOrNull(2)?.let { getMediaItemFromUid(it) }
                     )
                 }
                 ListPage -> {
                     val split: List<String> = data.split(VIEW_MORE_SPLIT_CHAR, limit = 3)
                     return ListPageBrowseIdYoutubePage(
-                        media_item = getMediaItemFromUid(split[0], MediaItemType.ARTIST),
-                        list_page_browse_id = split[1],
-                        browse_params = split[2]
+                        mediaItem = getMediaItemFromUid(split[0], MediaItemType.ARTIST),
+                        listPageBrowseId = split[1],
+                        browseParams = split[2]
                     )
                 }
                 Plain -> {
-                    return PlainYoutubePage(browse_id = data)
+                    return PlainYoutubePage(browseId = data)
                 }
             }
         }
@@ -53,17 +54,17 @@ enum class YoutubePageType {
                 is MediaItemYoutubePage ->
                     Pair(
                         MediaItem.ordinal.toLong(),
-                        view_more.browse_media_item.getUid() + VIEW_MORE_SPLIT_CHAR + (view_more.browse_params ?: "") + VIEW_MORE_SPLIT_CHAR + (view_more.media_item?.getUid() ?: "")
+                        view_more.browseMediaItem.getUid() + VIEW_MORE_SPLIT_CHAR + (view_more.browseParams ?: "") + VIEW_MORE_SPLIT_CHAR + (view_more.mediaItem?.getUid() ?: "")
                     )
                 is ListPageBrowseIdYoutubePage ->
                     Pair(
                         ListPage.ordinal.toLong(),
-                        view_more.media_item.getUid() + VIEW_MORE_SPLIT_CHAR + view_more.list_page_browse_id + VIEW_MORE_SPLIT_CHAR + view_more.browse_params
+                        view_more.mediaItem.getUid() + VIEW_MORE_SPLIT_CHAR + view_more.listPageBrowseId + VIEW_MORE_SPLIT_CHAR + view_more.browseParams
                     )
                 is PlainYoutubePage ->
                     Pair(
                         Plain.ordinal.toLong(),
-                        view_more.browse_id
+                        view_more.browseId
                     )
                 is LambdaYoutubePage -> null
                 else -> throw NotImplementedError(view_more::class.toString())
@@ -73,7 +74,7 @@ enum class YoutubePageType {
 
 data class LambdaYoutubePage(
     val action: (player: PlayerState, title: UiString?) -> Unit
-): YoutubePage {
+): CustomYoutubePage {
     override fun getBrowseParamsData(): YoutubePage.BrowseParamsData =
         throw IllegalStateException()
 }
@@ -83,18 +84,20 @@ suspend fun YoutubePage.open(player: PlayerState, title: UiString?) {
         is LambdaYoutubePage ->  action(player, title)
         is MediaItemYoutubePage ->
             player.openMediaItem(
-                (media_item ?: browse_media_item).toMediaItemRef(),
+                (mediaItem ?: browseMediaItem).toMediaItemRef(),
                 true,
-                browse_params = browse_params?.let {
-                    YoutubePage.BrowseParamsData(browse_media_item.id, it)
+                browse_params = browseParams?.let {
+                    YoutubePage.BrowseParamsData(browseMediaItem.id, it)
                 }
             )
         is ListPageBrowseIdYoutubePage ->
             player.openMediaItem(
-                media_item.toMediaItemRef(),
+                mediaItem.toMediaItemRef(),
                 browse_params = getBrowseParamsData()
             )
         is PlainYoutubePage ->
-            player.openViewMorePage(browse_id, runBlocking { title?.getString(player.context.getUiLanguage()) })
+            player.openViewMorePage(browseId, runBlocking { title?.getString(player.context.getUiLanguage().toTag()) })
+
+        is CustomYoutubePage -> throw UnsupportedOperationException("Unknown CustomYoutubePage $this (${this::class})")
     }
 }

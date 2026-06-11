@@ -6,6 +6,7 @@ import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
@@ -26,7 +27,7 @@ import com.toasterofbread.spmp.platform.AppContext
 import com.toasterofbread.spmp.platform.PlatformBinder
 import com.toasterofbread.spmp.platform.PlatformServiceImpl
 import com.toasterofbread.spmp.platform.getUiLanguage
-import dev.toastbits.composekit.platform.PlatformFile
+import dev.toastbits.composekit.context.PlatformFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -68,7 +69,7 @@ class PlayerDownloadService: PlatformServiceImpl() {
         }
 
         override fun onPausedChanged() {
-            context.coroutine_scope.launch {
+            context.coroutineScope.launch {
                 pause_resume_action?.title =
                     if (paused) getString(Res.string.action_download_resume)
                     else getString(Res.string.action_download_pause)
@@ -102,7 +103,7 @@ class PlayerDownloadService: PlatformServiceImpl() {
         }
 
         override fun onDownloadProgress() {
-            context.coroutine_scope.launch {
+            context.coroutineScope.launch {
                 updateNotification()
             }
         }
@@ -221,7 +222,7 @@ class PlayerDownloadService: PlatformServiceImpl() {
 
     override fun onMessage(data: Any?) {
         require(data is PlayerDownloadManager.PlayerDownloadMessage)
-        context.coroutine_scope.launch {
+        context.coroutineScope.launch {
             onActionIntentReceived(data)
         }
     }
@@ -331,7 +332,7 @@ class PlayerDownloadService: PlatformServiceImpl() {
         val action: Any? = intent?.extras?.get("action")
         if (action is IntentAction) {
             println("Download service received action $action")
-            context.coroutine_scope.launch {
+            context.coroutineScope.launch {
                 onActionIntentReceived(
                     PlayerDownloadManager.PlayerDownloadMessage(
                         action,
@@ -347,7 +348,7 @@ class PlayerDownloadService: PlatformServiceImpl() {
     private suspend fun getNotificationBuilder(): NotificationCompat.Builder {
         val content_intent: PendingIntent = PendingIntent.getActivity(
             this, 0,
-            Intent(this@PlayerDownloadService, AppContext.main_activity),
+            AppContext.getMainActivityIntent(this),
             PendingIntent.FLAG_IMMUTABLE
         )
 

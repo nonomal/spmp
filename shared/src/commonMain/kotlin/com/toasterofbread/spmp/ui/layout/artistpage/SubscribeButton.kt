@@ -15,14 +15,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import dev.toastbits.composekit.utils.common.getContrasted
-import dev.toastbits.composekit.utils.composable.ShapedIconButton
-import dev.toastbits.composekit.utils.composable.SubtleLoadingIndicator
+import dev.toastbits.composekit.util.getContrasted
+import dev.toastbits.composekit.components.utils.composable.ShapedIconButton
+import dev.toastbits.composekit.components.utils.composable.SubtleLoadingIndicator
 import com.toasterofbread.spmp.model.mediaitem.artist.Artist
 import com.toasterofbread.spmp.model.mediaitem.artist.updateSubscribed
 import com.toasterofbread.spmp.model.mediaitem.loader.ArtistSubscribedLoader
 import com.toasterofbread.spmp.resources.getStringTODO
-import dev.toastbits.composekit.platform.assert
 import kotlinx.coroutines.launch
 
 @Composable
@@ -57,8 +56,11 @@ fun ArtistSubscribeButton(
             ShapedIconButton(
                 {
                     coroutine_scope.launch {
-                        val result: Result<Unit> = artist.updateSubscribed(!subscribed, auth_state.SetSubscribedToArtist, player.context)
-                        if (result.isFailure) {
+                        val target: Boolean = !subscribed
+                        val result: Result<Unit> = artist.updateSubscribed(target, auth_state.SetSubscribedToArtist, player.context)
+                        result.onFailure { exception ->
+                            RuntimeException("Ignoring failure to set artist ${artist.id} subscribed status to $target", exception).printStackTrace()
+
                             val artist_title: String? = artist.getActiveTitle(player.database)
                             player.context.sendToast(
                                 getStringTODO(

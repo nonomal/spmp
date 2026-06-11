@@ -8,22 +8,30 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredHeightIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,27 +46,27 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import dev.toastbits.composekit.platform.composable.ScrollBarLazyColumn
-import dev.toastbits.composekit.platform.composable.composeScope
-import dev.toastbits.composekit.utils.common.*
-import dev.toastbits.composekit.utils.common.launchSingle
-import dev.toastbits.composekit.utils.composable.getTop
-import dev.toastbits.composekit.utils.modifier.background
 import com.toasterofbread.spmp.model.mediaitem.song.Song
 import com.toasterofbread.spmp.model.settings.category.NowPlayingQueueRadioInfoPosition
 import com.toasterofbread.spmp.model.settings.category.NowPlayingQueueWaveBorderMode
 import com.toasterofbread.spmp.platform.PlayerListener
-import com.toasterofbread.spmp.platform.playerservice.PlayerService
 import com.toasterofbread.spmp.service.playercontroller.LocalPlayerClickOverrides
+import com.toasterofbread.spmp.service.playercontroller.PlayerState
 import com.toasterofbread.spmp.ui.component.WaveBorder
 import com.toasterofbread.spmp.ui.component.multiselect.MediaItemMultiSelectContext
 import com.toasterofbread.spmp.ui.component.multiselect.MultiSelectItem
-import com.toasterofbread.spmp.ui.layout.apppage.mainpage.MINIMISED_NOW_PLAYING_HEIGHT_DP
-import com.toasterofbread.spmp.service.playercontroller.PlayerState
 import com.toasterofbread.spmp.ui.component.radio.StatusDisplay
+import com.toasterofbread.spmp.ui.layout.apppage.mainpage.MINIMISED_NOW_PLAYING_HEIGHT_DP
 import com.toasterofbread.spmp.ui.layout.nowplaying.NowPlayingTopBar
 import com.toasterofbread.spmp.ui.layout.nowplaying.getNPAltOnBackground
 import com.toasterofbread.spmp.ui.layout.nowplaying.getNPBackground
+import dev.toastbits.composekit.components.platform.composable.ScrollBarLazyColumn
+import dev.toastbits.composekit.components.platform.composable.composeScope
+import dev.toastbits.composekit.util.getContrasted
+import dev.toastbits.composekit.util.platform.launchSingle
+import dev.toastbits.composekit.util.thenIf
+import dev.toastbits.composekit.util.thenWith
+import dev.toastbits.composekit.components.utils.modifier.background
 import kotlinx.coroutines.delay
 import org.burnoutcrew.reorderable.ReorderableLazyListState
 import org.burnoutcrew.reorderable.rememberReorderableLazyListState
@@ -91,7 +99,7 @@ internal fun QueueTab(
     val scroll_coroutine_scope = rememberCoroutineScope()
 
     var key_inc by remember { mutableStateOf(0) }
-    val radio_info_position: NowPlayingQueueRadioInfoPosition by player.settings.player.QUEUE_RADIO_INFO_POSITION.observe()
+    val radio_info_position: NowPlayingQueueRadioInfoPosition by player.settings.Player.QUEUE_RADIO_INFO_POSITION.observe()
     val multiselect_context: MediaItemMultiSelectContext = remember { MediaItemMultiSelectContext(player.context) }
 
     val song_items: SnapshotStateList<QueueTabItem> = remember { mutableStateListOf<QueueTabItem>().also { list ->
@@ -198,7 +206,8 @@ internal fun QueueTab(
                 moveSong(from, to)
             }
             playing_key = null
-        }
+        },
+        scrollMargin = 30.dp
     )
 
     val top_bar_height: Dp by animateDpAsState(
@@ -257,7 +266,7 @@ internal fun QueueTab(
 
                 val show_border: Boolean by remember { derivedStateOf { getBackgroundOpacity() >= 1f } }
                 if (show_border) {
-                    val wave_border_mode_state: NowPlayingQueueWaveBorderMode by player.settings.player.QUEUE_WAVE_BORDER_MODE.observe()
+                    val wave_border_mode_state: NowPlayingQueueWaveBorderMode by player.settings.Player.QUEUE_WAVE_BORDER_MODE.observe()
                     wave_border_mode = wave_border_mode_override ?: wave_border_mode_state
 
                     QueueBorder(
@@ -277,7 +286,7 @@ internal fun QueueTab(
                 CompositionLocalProvider(LocalPlayerClickOverrides provides LocalPlayerClickOverrides.current.copy(
                     onClickOverride = { song, index: Int? ->
                         if (index != player.status.m_index) {
-                            player.controller?.seekToSong(index!!)
+                            player.controller?.seekToItem(index!!)
                         }
                     }
                 )) {
@@ -293,7 +302,7 @@ internal fun QueueTab(
                             list_position = with(density) { coords.positionInParent().y.toDp() }
                         }
                     ) {
-                        val extra_side_padding: Float by player.settings.player.QUEUE_EXTRA_SIDE_PADDING.observe()
+                        val extra_side_padding: Float by player.settings.Player.QUEUE_EXTRA_SIDE_PADDING.observe()
                         val side_padding: Dp = maxWidth * extra_side_padding * 0.25f
 
                         ScrollBarLazyColumn(

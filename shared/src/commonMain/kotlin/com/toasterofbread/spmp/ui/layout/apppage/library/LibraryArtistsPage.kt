@@ -21,10 +21,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.toastbits.composekit.platform.composable.ScrollBarLazyColumn
-import dev.toastbits.composekit.utils.composable.EmptyListAndDataCrossfade
-import dev.toastbits.composekit.utils.composable.LoadActionIconButton
-import dev.toastbits.composekit.utils.composable.RowOrColumnScope
+import dev.toastbits.composekit.components.platform.composable.ScrollBarLazyColumn
+import dev.toastbits.composekit.components.utils.composable.LoadActionIconButton
+import dev.toastbits.composekit.components.utils.composable.RowOrColumnScope
 import com.toasterofbread.spmp.model.mediaitem.MediaItemHolder
 import com.toasterofbread.spmp.model.mediaitem.artist.Artist
 import com.toasterofbread.spmp.model.mediaitem.artist.ArtistRef
@@ -42,6 +41,7 @@ import com.toasterofbread.spmp.ui.layout.apppage.AppPageState
 import com.toasterofbread.spmp.ui.layout.apppage.AppPageWithItem
 import com.toasterofbread.spmp.service.playercontroller.PlayerState
 import com.toasterofbread.spmp.ui.layout.artistpage.LocalArtistPage
+import dev.toastbits.composekit.components.utils.composable.crossfade.EmptyListAndDataCrossfade
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import spmp.shared.generated.resources.Res
@@ -214,7 +214,7 @@ class LibraryArtistsPage(context: AppContext): LibrarySubPage(context) {
                     }
                     else {
                         itemsIndexed(artists, { _, item -> item }) { index, artist_data ->
-                            val (artist, song_count) = artist_data
+                            val (artist, item_count) = artist_data
 
                             MediaItemPreviewLong(
                                 artist,
@@ -226,7 +226,7 @@ class LibraryArtistsPage(context: AppContext): LibrarySubPage(context) {
                                 title_lines = 3,
                                 getExtraInfo = {
                                     listOf(
-                                        stringResource(Res.string.`artist_$x_songs`).replace("\$x", song_count.toString())
+                                        stringResource(Res.string.`artist_$x_songs`).replace("\$x", item_count.toString())
                                     )
                                 }
                             )
@@ -254,7 +254,7 @@ class LibraryArtistsPage(context: AppContext): LibrarySubPage(context) {
                     )
                     loaded = true
                 },
-                load_on_launch = true
+                loadOnLaunch = true
             ) {
                 Icon(Icons.Default.Refresh, null)
             }

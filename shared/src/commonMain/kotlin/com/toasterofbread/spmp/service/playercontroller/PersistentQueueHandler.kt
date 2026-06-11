@@ -6,7 +6,7 @@ import com.toasterofbread.spmp.model.mediaitem.song.Song
 import com.toasterofbread.spmp.model.mediaitem.song.SongData
 import com.toasterofbread.spmp.platform.AppContext
 import com.toasterofbread.spmp.platform.playerservice.PlayerServicePlayer
-import dev.toastbits.composekit.platform.Platform
+import dev.toastbits.composekit.util.platform.Platform
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.joinAll
@@ -17,17 +17,17 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import PlatformIO
 import com.toasterofbread.spmp.db.persistentqueue.PersistentQueueMetadata
-import dev.toastbits.composekit.platform.lazyAssert
+import dev.toastbits.composekit.util.platform.lazyAssert
 
 internal class PersistentQueueHandler(val player: PlayerServicePlayer, val context: AppContext) {
     private var persistent_queue_loaded: Boolean = false
     private val queue_lock: Mutex = Mutex()
 
     private fun getPersistentQueueMetadata(): PersistentQueueMetadata =
-        PersistentQueueMetadata(0, player.current_song_index.toLong(), player.current_position_ms)
+        PersistentQueueMetadata(0, player.current_item_index.toLong(), player.current_position_ms)
 
     suspend fun savePersistentQueue() {
-        if (!persistent_queue_loaded || !context.settings.system.PERSISTENT_QUEUE.get() || ProjectBuildConfig.DISABLE_PERSISTENT_QUEUE == true) {
+        if (!persistent_queue_loaded || !context.settings.Misc.PERSISTENT_QUEUE.get() || ProjectBuildConfig.DISABLE_PERSISTENT_QUEUE == true) {
             return
         }
 
@@ -35,7 +35,7 @@ internal class PersistentQueueHandler(val player: PlayerServicePlayer, val conte
         val metadata: PersistentQueueMetadata
 
         withContext(Dispatchers.Main) {
-            for (i in 0 until player.song_count) {
+            for (i in 0 until player.item_count) {
                 val song: Song? = player.getSong(i)
                 if (song != null) {
                     songs.add(song)
@@ -73,14 +73,14 @@ internal class PersistentQueueHandler(val player: PlayerServicePlayer, val conte
             return
         }
 
-        if (player.song_count > 0) {
+        if (player.item_count > 0) {
             println("loadPersistentQueue: Skipping, queue already populated")
             persistent_queue_loaded = true
             return
         }
 
         withContext(Dispatchers.PlatformIO) {
-            if (!context.settings.system.PERSISTENT_QUEUE.get()) {
+            if (!context.settings.Misc.PERSISTENT_QUEUE.get()) {
                 println("loadPersistentQueue: Skipping, feature disabled")
 
                 return@withContext
@@ -140,7 +140,7 @@ internal class PersistentQueueHandler(val player: PlayerServicePlayer, val conte
                 println("loadPersistentQueue: Adding ${songs.size} songs to $metadata")
 
                 player.apply {
-                    if (player.song_count == 0) {
+                    if (player.item_count == 0) {
                         clearQueue(save = false)
                         addMultipleToQueue(songs, 0)
 

@@ -14,9 +14,9 @@ import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import com.toasterofbread.spmp.model.mediaitem.observeUrl
-import dev.toastbits.composekit.platform.vibrateShort
-import dev.toastbits.composekit.utils.composable.PlatformClickableIconButton
-import dev.toastbits.composekit.utils.modifier.bounceOnClick
+import dev.toastbits.composekit.context.vibrateShort
+import dev.toastbits.composekit.components.utils.composable.PlatformClickableIconButton
+import dev.toastbits.composekit.components.utils.modifier.bounceOnClick
 import com.toasterofbread.spmp.model.mediaitem.song.Song
 import com.toasterofbread.spmp.ui.component.LikeDislikeButton
 import com.toasterofbread.spmp.service.playercontroller.PlayerState
@@ -52,7 +52,7 @@ internal object NowPlayingMainTabActionButtons {
                 if (song != null) {
                     player.withPlayer {
                         undoableAction {
-                            startRadioAtIndex(current_song_index + 1, song, current_song_index, skip_first = true)
+                            startRadioAtIndex(current_item_index + 1, song, current_item_index, skip_first = true)
                         }
                     }
                     player.expansion.scrollTo(2.coerceIn(player.expansion.getPageRange()))
@@ -72,7 +72,7 @@ internal object NowPlayingMainTabActionButtons {
             {
                 player.withPlayer {
                     undoableAction {
-                        shuffleQueue(start = current_song_index + 1)
+                        shuffleQueue(start = current_item_index + 1)
                     }
                 }
             },

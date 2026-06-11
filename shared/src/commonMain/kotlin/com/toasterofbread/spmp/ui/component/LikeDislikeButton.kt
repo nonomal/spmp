@@ -20,17 +20,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import dev.toastbits.composekit.platform.vibrateShort
-import dev.toastbits.composekit.utils.common.launchSingle
-import dev.toastbits.composekit.utils.common.thenIf
-import dev.toastbits.composekit.utils.composable.PlatformClickableIconButton
-import dev.toastbits.composekit.utils.composable.SubtleLoadingIndicator
-import dev.toastbits.composekit.utils.modifier.bounceOnClick
+import dev.toastbits.composekit.context.vibrateShort
+import dev.toastbits.composekit.util.platform.launchSingle
+import dev.toastbits.composekit.util.thenIf
+import dev.toastbits.composekit.components.utils.composable.PlatformClickableIconButton
+import dev.toastbits.composekit.components.utils.composable.SubtleLoadingIndicator
+import dev.toastbits.composekit.components.utils.modifier.bounceOnClick
 import com.toasterofbread.spmp.model.mediaitem.loader.SongLikedLoader
 import com.toasterofbread.spmp.model.mediaitem.song.Song
 import com.toasterofbread.spmp.model.mediaitem.song.updateLiked
 import com.toasterofbread.spmp.service.playercontroller.PlayerState
 import com.toasterofbread.spmp.ui.theme.appHover
+import com.toasterofbread.spmp.util.getToggleTarget
 import dev.toastbits.ytmkt.endpoint.SetSongLikedEndpoint
 import dev.toastbits.ytmkt.endpoint.SongLikedEndpoint
 import dev.toastbits.ytmkt.model.external.SongLikedStatus
@@ -72,10 +73,7 @@ fun LikeDislikeButton(
 
             coroutine_scope.launchSingle {
                 song.updateLiked(
-                    when (liked_status) {
-                        SongLikedStatus.LIKED, SongLikedStatus.DISLIKED -> SongLikedStatus.NEUTRAL
-                        SongLikedStatus.NEUTRAL, null -> SongLikedStatus.LIKED
-                    },
+                    liked_status.getToggleTarget(),
                     set_liked_endpoint,
                     player.context
                 )

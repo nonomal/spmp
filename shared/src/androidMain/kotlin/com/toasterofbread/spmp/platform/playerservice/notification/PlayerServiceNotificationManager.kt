@@ -4,7 +4,6 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.Intent
 import android.graphics.Bitmap
 import android.media.MediaMetadata
 import android.media.session.MediaSession
@@ -19,6 +18,7 @@ import androidx.media3.ui.PlayerNotificationManager
 import app.cash.sqldelight.Query
 import com.toasterofbread.spmp.model.mediaitem.loader.MediaItemThumbnailLoader
 import com.toasterofbread.spmp.model.mediaitem.loader.SongLikedLoader
+import com.toasterofbread.spmp.model.mediaitem.playlist.RemotePlaylist
 import com.toasterofbread.spmp.model.mediaitem.song.Song
 import com.toasterofbread.spmp.platform.AppContext
 import com.toasterofbread.spmp.platform.PlayerListener
@@ -26,8 +26,8 @@ import com.toasterofbread.spmp.platform.playerservice.ForegroundPlayerService
 import com.toasterofbread.spmp.platform.playerservice.formatMediaNotificationImage
 import com.toasterofbread.spmp.platform.playerservice.toSong
 import com.toasterofbread.spmp.shared.R
-import dev.toastbits.composekit.platform.isAppInForeground
-import dev.toastbits.composekit.utils.common.launchSingle
+import dev.toastbits.composekit.context.isAppInForeground
+import dev.toastbits.composekit.util.platform.launchSingle
 import dev.toastbits.spms.socketapi.shared.SpMsPlayerState
 import dev.toastbits.ytmkt.model.external.ThumbnailProvider
 import kotlinx.coroutines.CoroutineScope
@@ -43,7 +43,7 @@ class PlayerServiceNotificationManager(
     private val media_session: MediaSession,
     private val notification_manager: NotificationManager,
     private val service: ForegroundPlayerService,
-    player: Player
+    private val player: Player
 ) {
     private var current_song: Song? = null
     private val thumbnail_load_scope: CoroutineScope = CoroutineScope(Job())
@@ -51,7 +51,7 @@ class PlayerServiceNotificationManager(
     private val song_liked_load_scope: CoroutineScope = CoroutineScope(Job())
 
     private val metadata_builder: MediaMetadata.Builder = MediaMetadata.Builder()
-    private val state: NotificationStateManager = NotificationStateManager(media_session, player)
+    private val state: NotificationStateManager = NotificationStateManager(media_session)
 
     private val notification_listener: PlayerNotificationManager.NotificationListener =
         object : PlayerNotificationManager.NotificationListener {
@@ -85,7 +85,20 @@ class PlayerServiceNotificationManager(
                 }
 
                 current_song = song
-                state.update(current_liked_status = song?.Liked?.get(context.database))
+                state.update(
+                    current_liked_status = song?.Liked?.get(context.database),
+                    position_ms = player.currentPosition
+                )
+
+                updateMetadata {
+                    putString(MediaMetadata.METADATA_KEY_TITLE, song?.getActiveTitle(context.database))
+                    putString(MediaMetadata.METADATA_KEY_ARTIST, song?.Artists?.get(context.database)?.firstOrNull()?.getActiveTitle(context.database))
+                    putString(MediaMetadata.METADATA_KEY_ART_URI, song?.thumbnail_provider?.getThumbnailUrl(ThumbnailProvider.Quality.HIGH))
+
+                    val album: RemotePlaylist? = song?.Album?.get(context.database)
+                    putString(MediaMetadata.METADATA_KEY_ALBUM, album?.getActiveTitle(context.database))
+                    putString(MediaMetadata.METADATA_KEY_ALBUM_ART_URI, album?.thumbnail_provider?.getThumbnailUrl(ThumbnailProvider.Quality.HIGH))
+                }
 
                 if (song != null) {
                     context.database.songQueries.likedById(song.id).addListener(song_liked_listener)
@@ -102,8 +115,16 @@ class PlayerServiceNotificationManager(
                 }
             }
 
+            override fun onSeeked(position_ms: Long) {
+                state.update(position_ms = position_ms)
+            }
+
             override fun onPlayingChanged(is_playing: Boolean) {
                 state.update(paused = !is_playing)
+            }
+
+            override fun onEvents() {
+                state.update(position_ms = player.currentPosition)
             }
 
             override fun onStateChanged(state: SpMsPlayerState) {
@@ -225,7 +246,7 @@ class PlayerServiceNotificationManager(
                 override fun createCurrentContentIntent(player: Player): PendingIntent =
                     PendingIntent.getActivity(
                         context.ctx, 0,
-                        Intent(context.ctx, AppContext.main_activity),
+                        AppContext.getMainActivityIntent(context.ctx),
                         PendingIntent.FLAG_IMMUTABLE
                     )
 

@@ -1,29 +1,44 @@
 package com.toasterofbread.spmp.platform.playerservice
 
-import dev.toastbits.ytmkt.model.ApiAuthenticationState
+import PlatformIO
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import dev.toastbits.composekit.platform.PlatformPreferences
-import dev.toastbits.composekit.platform.PlatformPreferencesListener
-import dev.toastbits.composekit.platform.Platform
-import dev.toastbits.composekit.platform.synchronized
 import com.toasterofbread.spmp.model.mediaitem.song.Song
+import com.toasterofbread.spmp.model.radio.RadioState
 import com.toasterofbread.spmp.model.settings.unpackSetData
 import com.toasterofbread.spmp.platform.PlatformServiceImpl
 import com.toasterofbread.spmp.platform.PlayerListener
 import com.toasterofbread.spmp.platform.download.DownloadStatus
 import com.toasterofbread.spmp.platform.getUiLanguage
-import com.toasterofbread.spmp.model.radio.RadioState
-import dev.toastbits.composekit.platform.getPlatformHostName
-import dev.toastbits.composekit.platform.getPlatformOSName
+import dev.toastbits.composekit.settings.PlatformSettingsListener
+import dev.toastbits.composekit.util.platform.getPlatformHostName
+import dev.toastbits.composekit.util.platform.getPlatformOSName
+import dev.toastbits.spms.server.CLIENT_HEARTBEAT_MAX_PERIOD
+import dev.toastbits.spms.server.CLIENT_HEARTBEAT_TARGET_PERIOD
+import dev.toastbits.spms.socketapi.shared.SPMS_EXPECT_REPLY_CHAR
+import dev.toastbits.spms.socketapi.shared.SpMsActionReply
+import dev.toastbits.spms.socketapi.shared.SpMsClientHandshake
+import dev.toastbits.spms.socketapi.shared.SpMsClientInfo
+import dev.toastbits.spms.socketapi.shared.SpMsClientType
+import dev.toastbits.spms.socketapi.shared.SpMsPlayerEvent
+import dev.toastbits.spms.socketapi.shared.SpMsPlayerRepeatMode
+import dev.toastbits.spms.socketapi.shared.SpMsPlayerState
+import dev.toastbits.spms.socketapi.shared.SpMsServerHandshake
+import dev.toastbits.spms.zmq.ZmqSocket
+import dev.toastbits.spms.zmq.ZmqSocketType
+import dev.toastbits.ytmkt.model.ApiAuthenticationState
 import io.ktor.http.Headers
 import io.ktor.util.flattenEntries
-import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -31,22 +46,16 @@ import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
-import kotlinx.serialization.json.put
 import kotlinx.serialization.json.encodeToJsonElement
-import dev.toastbits.spms.socketapi.shared.*
-import dev.toastbits.spms.server.CLIENT_HEARTBEAT_TARGET_PERIOD
-import dev.toastbits.spms.server.CLIENT_HEARTBEAT_MAX_PERIOD
-import dev.toastbits.spms.zmq.ZmqSocket
-import dev.toastbits.spms.zmq.ZmqSocketType
-import kotlin.time.*
-import kotlin.time.Duration
-import PlatformIO
+import kotlinx.serialization.json.put
 import org.jetbrains.compose.resources.getString
-import org.jetbrains.compose.resources.stringResource
 import spmp.shared.generated.resources.Res
 import spmp.shared.generated.resources.app_name
 import spmp.shared.generated.resources.loading_splash_setting_initial_state
 import spmp.shared.generated.resources.unknown_host_name
+import kotlin.time.Duration
+import kotlin.time.TimeMark
+import kotlin.time.TimeSource
 
 private val SERVER_REPLY_TIMEOUT: Duration = with (Duration) { 1.seconds }
 
@@ -69,10 +78,10 @@ abstract class SpMsPlayerService(val plays_audio: Boolean): PlatformServiceImpl(
         return getString(Res.string.app_name) + " [$os, $host]"
     }
 
-    private val prefs_listener: PlatformPreferencesListener =
-        PlatformPreferencesListener { _, key ->
+    private val prefs_listener: PlatformSettingsListener =
+        PlatformSettingsListener { key ->
             when (key) {
-                context.settings.youtube_auth.YTM_AUTH.key -> {
+                context.settings.YoutubeAuth.YTM_AUTH.key -> {
                     sendYtmAuthToPlayers()
                 }
             }
@@ -92,7 +101,7 @@ abstract class SpMsPlayerService(val plays_audio: Boolean): PlatformServiceImpl(
 
     internal var _state: SpMsPlayerState = SpMsPlayerState.IDLE
     internal var _is_playing: Boolean = false
-    internal var _current_song_index: Int = -1
+    internal var _current_item_index: Int = -1
     internal var _duration_ms: Long = -1
     internal var _radio_state: RadioState = RadioState() // TODO
     internal var _repeat_mode: SpMsPlayerRepeatMode = SpMsPlayerRepeatMode.NONE
@@ -132,9 +141,12 @@ abstract class SpMsPlayerService(val plays_audio: Boolean): PlatformServiceImpl(
         }
     }
 
+    protected open fun onServiceCreate() {}
+
     override fun onCreate() {
         context.getPrefs().addListener(prefs_listener)
         connectToServer()
+        onServiceCreate()
     }
 
     override fun onDestroy() {
@@ -199,7 +211,7 @@ abstract class SpMsPlayerService(val plays_audio: Boolean): PlatformServiceImpl(
                 name = getClientName(),
                 type = if (plays_audio) SpMsClientType.SPMP_PLAYER else SpMsClientType.SPMP_STANDALONE,
                 machine_id = getSpMsMachineId(context),
-                language = context.getUiLanguage()
+                language = context.getUiLanguage().toTag()
             )
 
         val server_handshake: SpMsServerHandshake =
@@ -360,7 +372,7 @@ abstract class SpMsPlayerService(val plays_audio: Boolean): PlatformServiceImpl(
         val events: List<String> =
             recvStringMultipart(timeout) ?: return@withContext false
 
-        if (events.size == 1 && events.first().contains("REPLY TO ")) {
+        if (events.size <= 1 && events.first().contains("REPLY TO ")) {
             return@withContext true
         }
 
@@ -434,16 +446,16 @@ abstract class SpMsPlayerService(val plays_audio: Boolean): PlatformServiceImpl(
 
     override suspend fun sendAuthInfoToPlayers(ytm_auth: Pair<String?, Headers>?): Result<Unit> = withContext(Dispatchers.PlatformIO) {
         return@withContext runCatching {
-            runCommandOnEachLocalPlayer(
-                "setAuthInfo",
-                ytm_auth?.second?.let {
-                    buildJsonObject {
-                        for ((key, value) in it.flattenEntries()) {
-                            put(key, value)
-                        }
-                    }
-                }
-            )
+            // runCommandOnEachLocalPlayer(
+            //     "setAuthInfo",
+            //     ytm_auth?.second?.let {
+            //         buildJsonObject {
+            //             for ((key, value) in it.flattenEntries()) {
+            //                 put(key, value)
+            //             }
+            //         }
+            //     }
+            // )
         }
     }
 
@@ -469,7 +481,7 @@ abstract class SpMsPlayerService(val plays_audio: Boolean): PlatformServiceImpl(
                     name = getClientName(),
                     type = SpMsClientType.SPMP_STANDALONE,
                     machine_id = getSpMsMachineId(context),
-                    language = context.getUiLanguage()
+                    language = context.getUiLanguage().toTag()
                 )
 
             val server_handshake: SpMsServerHandshake? =
@@ -515,7 +527,7 @@ abstract class SpMsPlayerService(val plays_audio: Boolean): PlatformServiceImpl(
         player_status_coroutine_scope.launch {
             val ytm_auth: Pair<String?, Headers>? =
                 ApiAuthenticationState.unpackSetData(
-                    context.settings.youtube_auth.YTM_AUTH.get(),
+                    context.settings.YoutubeAuth.YTM_AUTH.get(),
                     context
                 ).takeIf { it?.first != null }
             sendAuthInfoToPlayers(ytm_auth)

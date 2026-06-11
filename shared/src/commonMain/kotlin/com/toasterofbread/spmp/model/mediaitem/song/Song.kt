@@ -31,7 +31,7 @@ import PlatformIO
 import com.toasterofbread.spmp.platform.crop
 import io.ktor.client.HttpClient
 
-private const val STATIC_LYRICS_SYNC_OFFSET: Long = 1000
+const val STATIC_LYRICS_SYNC_OFFSET: Long = 1000
 
 interface Song: MediaItem.WithArtists {
     override fun getType(): MediaItemType = MediaItemType.SONG
@@ -176,12 +176,12 @@ interface Song: MediaItem.WithArtists {
     @Composable
     fun getLyricsSyncOffset(database: Database, is_topbar: Boolean): State<Long> {
         val player: PlayerState = LocalPlayerState.current
-        val controller: PlayerService = player.controller ?: return mutableStateOf(0)
+        val controller: PlayerService? = player.controller
 
         val internal_offset: Long? by LyricsSyncOffset.observe(database)
-        val settings_delay: Float by player.settings.lyrics.SYNC_DELAY.observe()
-        val settings_delay_topbar: Float by player.settings.lyrics.SYNC_DELAY_TOPBAR.observe()
-        val settings_delay_bt: Float by player.settings.lyrics.SYNC_DELAY_BLUETOOTH.observe()
+        val settings_delay: Float by player.settings.Lyrics.SYNC_DELAY.observe()
+        val settings_delay_topbar: Float by player.settings.Lyrics.SYNC_DELAY_TOPBAR.observe()
+        val settings_delay_bt: Float by player.settings.Lyrics.SYNC_DELAY_BLUETOOTH.observe()
 
         return remember(controller, is_topbar) { derivedStateOf {
             var delay: Float = settings_delay
@@ -194,7 +194,7 @@ interface Song: MediaItem.WithArtists {
             @Suppress("UNUSED_EXPRESSION")
             settings_delay_bt
 
-            if (controller.isPlayingOverLatentDevice()) {
+            if (controller?.isPlayingOverLatentDevice() == true) {
                 delay += settings_delay_bt
             }
 
@@ -232,7 +232,7 @@ private data class SongThumbnailProvider(val id: String): ThumbnailProvider {
 @Composable
 fun Song?.observeThumbnailRounding(): Int {
     val player: PlayerState = LocalPlayerState.current
-    val default: Float by player.settings.theme.NOWPLAYING_DEFAULT_IMAGE_CORNER_ROUNDING.observe()
+    val default: Float by player.settings.Theme.NOWPLAYING_DEFAULT_IMAGE_CORNER_ROUNDING.observe()
     val corner_rounding: Float? = this?.ThumbnailRounding?.observe(player.database)?.value
     return ((corner_rounding ?: default) * 50f).roundToInt()
 }

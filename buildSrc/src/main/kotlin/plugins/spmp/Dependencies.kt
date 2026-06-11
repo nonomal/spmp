@@ -34,31 +34,46 @@ class SpMpDeps(extra: Map<String, Any>) {
         throw RuntimeException("No dependency found matching artifact '$artifact")
     }
 
+    fun getAllComposeKit(): List<String> =
+        listOf(
+            "dev.toastbits:composekit-application",
+            "dev.toastbits:composekit-commonsettings",
+            "dev.toastbits:composekit-components",
+            "dev.toastbits:composekit-context",
+            "dev.toastbits:composekit-navigation",
+            "dev.toastbits:composekit-settings",
+            "dev.toastbits:composekit-settingsitem-presentation",
+            "dev.toastbits:composekit-theme-core",
+            "dev.toastbits:composekit-theme-config",
+            "dev.toastbits:composekit-util",
+            "dev.toastbits:composekit-utilKt"
+        ).map { get(it, "dev.toastbits:composekit") }
+
     val dependencies: Map<String, DependencyInfo> =
         mapOf(
             "dev.toastbits:spms" to DependencyInfo(
-                version = "0.4.2",
+                version = "0.4.6",
                 name = "spmp-server",
                 author = "toasterofbread",
                 url = "https://github.com/toasterofbread/spmp-server",
                 license = "GPL-3.0",
                 license_url = "https://github.com/toasterofbread/spmp-server/blob/6dde651ffc102d604ac7ecd5ac7471b1572fd2e6/LICENSE"
             ),
-            "dev.toastbits.composekit" to DependencyInfo(
-                version = "76ef6d1ac7",
+            "dev.toastbits:composekit" to DependencyInfo(
+                version = "0.1.0-rc4",
                 name = "ComposeKit",
                 author = "toasterofbread",
                 url = "https://github.com/toasterofbread/composekit",
                 license = "GPL-3.0",
                 license_url = "https://github.com/toasterofbread/ComposeKit/blob/136f216e65395660255d3270af9b79c90ae2254c/LICENSE"
             ),
-            "dev.toastbits.ytmkt" to DependencyInfo(
-                version = "0.3.3",
+            "dev.toastbits:ytm-kt" to DependencyInfo(
+                version = "0.5.0-legacy",
                 name = "ytm-kt",
                 author = "toasterofbread",
-                url = "https://github.com/toasterofbread/ytm-kt",
+                url = "https://gitlab.com/toasterofbread/ytm-kt",
                 license = "Apache-2.0",
-                license_url = "https://github.com/toasterofbread/ytm-kt/blob/bc8ea6cef51d5da69e6ac2d898672db2825602fe/LICENSE"
+                license_url = "https://gitlab.com/toastbits/ytm-kt/-/blob/665916f150af57532e80ce3397d260af4cbee789/LICENSE"
             ),
             "dev.toastbits.mediasession" to DependencyInfo(
                 version = "0.1.0",
@@ -86,7 +101,7 @@ class SpMpDeps(extra: Map<String, Any>) {
                 license_url = "https://github.com/Kotlin/kotlinx.serialization/blob/51cb8e8e556983fc83a565d5f04bb089363453e0/LICENSE.txt"
             ),
             "org.jetbrains.compose" to DependencyInfo(
-                version = "1.6.2",
+                version = "1.8.0-alpha01",
                 name = "Compose Multiplatform",
                 author = "JetBrains",
                 url = "https://github.com/JetBrains/compose-multiplatform",
@@ -142,14 +157,16 @@ class SpMpDeps(extra: Map<String, Any>) {
                 license_url = "https://github.com/MohamedRejeb/Ksoup/blob/5f07e799c95e518d80caf70fc586ddcc649e1315/LICENSE"
             ),
             "com.github.toasterofbread.ComposeReorderable" to DependencyInfo(
-                version = "434c321a8f",
+                version = "77c7652169",
                 name = "ComposeReorderable",
                 author = "aclassen",
                 url = "https://github.com/aclassen/ComposeReorderable",
                 license = "Apache-2.0",
                 license_url = "https://github.com/aclassen/ComposeReorderable/blob/b0729bddaeb11c88eca97b6bb01b011246df8f9e/LICENSE",
-                fork_url = "https://github.com/toasterofbread/ComposeReorderable/"
+                fork_url = "https://github.com/toasterofbread/ComposeReorderable/",
+//                redirect = "org.burnoutcrew.composereorderable:reorderable"
             ),
+
             "com.github.SvenWoltmann:color-thief-java" to DependencyInfo(
                 version = "v1.1.2",
                 name = "Color Thief Java",
@@ -182,14 +199,6 @@ class SpMpDeps(extra: Map<String, Any>) {
                 license = "LGPL-2.1 or later",
                 license_url = "https://bitbucket.org/ijabz/jaudiotagger/src/master/license.txt",
                 fork_url = "https://github.com/marcoc1712/jaudiotagger"
-            ),
-            "com.github.teamnewpipe:NewPipeExtractor" to DependencyInfo(
-                version = "v0.24.2",
-                name = "NewPipe Extractor",
-                author = "Team NewPipe",
-                url = "https://github.com/TeamNewPipe/NewPipeExtractor",
-                license = "GPL-3.0",
-                license_url = "https://github.com/TeamNewPipe/NewPipeExtractor/blob/ec3e8378c627c682964f104fc2fb06ea5513b6b7/LICENSE"
             ),
             "org.zeromq:jeromq" to DependencyInfo(
                 version = "0.6.0",

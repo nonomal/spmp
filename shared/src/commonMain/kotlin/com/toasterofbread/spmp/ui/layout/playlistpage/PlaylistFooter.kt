@@ -17,7 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import dev.toastbits.composekit.utils.composable.SubtleLoadingIndicator
+import dev.toastbits.composekit.components.utils.composable.SubtleLoadingIndicator
 import com.toasterofbread.spmp.model.mediaitem.MediaItem
 import dev.toastbits.ytmkt.model.external.mediaitem.MediaItemLayout
 import com.toasterofbread.spmp.model.mediaitem.loader.MediaItemLoader
@@ -27,6 +27,7 @@ import com.toasterofbread.spmp.service.playercontroller.PlayerState
 import dev.toastbits.ytmkt.radio.RadioContinuation
 import kotlinx.coroutines.launch
 import LocalPlayerState
+import dev.toastbits.ytmkt.radio.BuiltInRadioContinuation
 import org.jetbrains.compose.resources.stringResource
 import spmp.shared.generated.resources.Res
 import spmp.shared.generated.resources.playlist_empty
@@ -39,11 +40,11 @@ fun PlaylistAppPage.PlaylistFooter(
     load_error: Throwable?,
     modifier: Modifier = Modifier,
     onRetry: (() -> Unit)?,
-    onContinue: ((RadioContinuation) -> Unit)?
+    onContinue: ((BuiltInRadioContinuation) -> Unit)?
 ) {
     val player: PlayerState = LocalPlayerState.current
     val remote_playlist: RemotePlaylist? = playlist as? RemotePlaylist
-    val continuation: RadioContinuation? = remote_playlist?.Continuation?.observe(player.database)?.value
+    val continuation: BuiltInRadioContinuation? = remote_playlist?.Continuation?.observe(player.database)?.value
 
     Crossfade(
         if (load_error != null) load_error
@@ -74,7 +75,7 @@ fun PlaylistAppPage.PlaylistFooter(
             is RadioContinuation, true -> {
                 onContinue?.also { onContinue ->
                     Box(Modifier.fillMaxSize().heightIn(min = 50.dp), contentAlignment = Alignment.Center) {
-                        if (state is RadioContinuation) {
+                        if (state is BuiltInRadioContinuation) {
                             Button({
                                 onContinue(state)
                             }) {

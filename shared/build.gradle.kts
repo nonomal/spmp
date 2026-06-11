@@ -18,7 +18,7 @@ plugins {
     id("app.cash.sqldelight")
 }
 
-val DATABASE_VERSION: Int = 8 // post-v0.3.2
+val DATABASE_VERSION: Int = 9 // since #368
 
 kotlin {
     androidTarget()
@@ -91,12 +91,14 @@ kotlin {
                 implementation(compose.components.resources)
 
                 implementation(deps.get("dev.toastbits:spms"))
-                implementation(deps.get("dev.toastbits.composekit:library"))
-                implementation(deps.get("dev.toastbits.ytmkt:ytmkt"))
+                implementation(deps.get("dev.toastbits:ytm-kt"))
                 implementation(deps.get("dev.toastbits.kana-kt:kanakt"))
+                for (dependency in deps.getAllComposeKit()) {
+                    implementation(dependency)
+                }
 
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0-RC")
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
                 implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
 
                 implementation(deps.get("org.apache.commons:commons-text"))
@@ -109,21 +111,19 @@ kotlin {
                 implementation(deps.get("com.github.paramsen:noise"))
                 implementation(deps.get("io.github.pdvrieze.xmlutil:core", "io.github.pdvrieze.xmlutil"))
                 implementation(deps.get("io.github.pdvrieze.xmlutil:serialization", "io.github.pdvrieze.xmlutil"))
-                implementation(deps.get("com.github.teamnewpipe:NewPipeExtractor"))
                 implementation(deps.get("org.zeromq:jeromq"))
                 implementation(deps.get("io.coil-kt.coil3:coil-compose"))
                 implementation(deps.get("io.coil-kt.coil3:coil-network-ktor3"))
                 implementation(deps.get("io.ktor:ktor-client-core", "io.ktor"))
                 implementation(deps.get("io.ktor:ktor-client-content-negotiation", "io.ktor"))
                 implementation(deps.get("io.ktor:ktor-serialization-kotlinx-json", "io.ktor"))
-
             }
         }
 
         val jvmMain by getting {
             dependencies {
                 implementation(deps.get("io.ktor:ktor-client-cio", "io.ktor"))
-                implementation(deps.get("com.github.toasterofbread.compose-webview-multiplatform:compose-webview-multiplatform"))
+//                implementation(deps.get("com.github.toasterofbread.compose-webview-multiplatform:compose-webview-multiplatform"))
                 implementation(deps.get("org.bitbucket.ijabz:jaudiotagger"))
             }
         }
@@ -134,9 +134,10 @@ kotlin {
                 api("androidx.core:core-ktx:1.13.1")
                 api("androidx.appcompat:appcompat:1.7.0")
 
+                implementation("io.github.kevinnzou:compose-webview-multiplatform:2.0.3-syk")
                 implementation("androidx.palette:palette:1.0.0")
                 implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.1.0")
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.7.1")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.7.3")
                 implementation(deps.get("androidx.media3:media3-exoplayer", "androidx.media3"))
                 implementation(deps.get("androidx.media3:media3-ui", "androidx.media3"))
                 implementation(deps.get("androidx.media3:media3-session", "androidx.media3"))
@@ -150,6 +151,10 @@ kotlin {
                 implementation(deps.get("com.anggrayudi:storage"))
                 implementation(deps.get("io.github.jan-tennert.supabase:functions-kt"))
                 implementation(deps.get("io.ktor:ktor-client-cio"))
+
+                // Widget
+                implementation("androidx.glance:glance-appwidget:1.1.1")
+                implementation("androidx.glance:glance-material3:1.1.1")
             }
         }
 
@@ -185,8 +190,8 @@ android {
     namespace = "com.toasterofbread.spmp.shared"
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_22
-        targetCompatibility = JavaVersion.VERSION_22
+        sourceCompatibility = JavaVersion.VERSION_23
+        targetCompatibility = JavaVersion.VERSION_23
     }
 
     sourceSets.getByName("main") {

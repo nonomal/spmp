@@ -17,8 +17,8 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import dev.toastbits.composekit.utils.common.getContrasted
-import dev.toastbits.composekit.utils.modifier.background
+import dev.toastbits.composekit.util.getContrasted
+import dev.toastbits.composekit.components.utils.modifier.background
 import com.toasterofbread.spmp.model.mediaitem.MediaItem
 import com.toasterofbread.spmp.model.mediaitem.enums.MediaItemType
 import com.toasterofbread.spmp.model.mediaitem.fromUid
@@ -50,7 +50,7 @@ internal fun CurrentRadioIndicator(
     val filters: List<List<RadioBuilderModifier>>? = radio_state?.filters
     var show_radio_info: Boolean by remember { mutableStateOf(false) }
     val radio_item: MediaItem? =
-        radio_state?.item_uid?.let { getMediaItemFromUid(it) }
+        radio_state?.source?.getMediaItem()
             ?.takeIf { item ->
                 item !is Song || radio_state.item_queue_index == null
             }
@@ -131,7 +131,13 @@ internal fun CurrentRadioIndicator(
 }
 
 @Composable
-private fun RadioFilterChip(selected: Boolean, getAccentColour: () -> Color, onClick: () -> Unit, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+private fun RadioFilterChip(
+    selected: Boolean,
+    getAccentColour: () -> Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
     FilterChip(
         selected,
         modifier = modifier.height(32.dp),
@@ -175,9 +181,13 @@ private fun FiltersRow(
                         radio.setRadioFilter(-1)
                     }
                 },
-                modifier = Modifier.width(48.dp)
+                modifier = Modifier.width(40.dp)
             ) {
-                Icon(MediaItemType.ARTIST.getIcon(), null, Modifier.offset(x = (-4).dp))
+                Icon(
+                    MediaItemType.ARTIST.getIcon(),
+                    null,
+                    Modifier.requiredSize(18.dp)
+                )
             }
         }
 

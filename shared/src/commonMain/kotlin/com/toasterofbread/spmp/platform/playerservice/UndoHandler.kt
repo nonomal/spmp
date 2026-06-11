@@ -3,10 +3,8 @@ package com.toasterofbread.spmp.platform.playerservice
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
-import dev.toastbits.composekit.utils.common.synchronizedBlock
-import dev.toastbits.composekit.platform.assert
-import dev.toastbits.composekit.platform.synchronized
 import com.toasterofbread.spmp.model.mediaitem.song.Song
+import com.toasterofbread.spmp.util.removeLastBuiltIn
 
 interface UndoRedoAction {
     fun undo(service: PlayerService) {}
@@ -33,7 +31,7 @@ internal class UndoHandler(val player: PlayerServicePlayer, val service: PlayerS
             service.service_player.onUndoStateChanged()
         }
         override fun undo(service: PlayerService) {
-            service.removeSong(index)
+            service.removeItem(index)
             service.service_player.onUndoStateChanged()
         }
     }
@@ -45,11 +43,11 @@ internal class UndoHandler(val player: PlayerServicePlayer, val service: PlayerS
 
         override fun redo(service: PlayerService) {
             super.redo(service)
-            service.moveSong(from, to)
+            service.moveItem(from, to)
             service.service_player.onUndoStateChanged()
         }
         override fun undo(service: PlayerService) {
-            service.moveSong(to, from)
+            service.moveItem(to, from)
             service.service_player.onUndoStateChanged()
         }
     }
@@ -62,7 +60,7 @@ internal class UndoHandler(val player: PlayerServicePlayer, val service: PlayerS
         override fun redo(service: PlayerService) {
             super.redo(service)
             song = service.getSong(index)!!
-            service.removeSong(index)
+            service.removeItem(index)
             service.service_player.onUndoStateChanged()
         }
 
@@ -137,7 +135,7 @@ internal class UndoHandler(val player: PlayerServicePlayer, val service: PlayerS
 
     private fun commitActionList(actions: List<UndoRedoAction>) {
         for (i in 0 until redo_count) {
-            action_list.removeLast()
+            action_list.removeLastBuiltIn()
         }
         action_list.add(actions)
         action_head++
@@ -146,7 +144,7 @@ internal class UndoHandler(val player: PlayerServicePlayer, val service: PlayerS
     }
 
     fun performAction(action: UndoRedoAction) {
-        synchronizedBlock(action_list) {
+        synchronized(action_list) {
             action.redo(service)
 
             val current = current_action

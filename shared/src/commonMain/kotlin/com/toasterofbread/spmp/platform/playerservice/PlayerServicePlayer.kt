@@ -20,10 +20,8 @@ import com.toasterofbread.spmp.platform.PlayerListener
 import com.toasterofbread.spmp.service.playercontroller.DiscordStatusHandler
 import com.toasterofbread.spmp.service.playercontroller.PersistentQueueHandler
 import com.toasterofbread.spmp.service.playercontroller.RadioHandler
-import dev.toastbits.composekit.platform.Platform
-import dev.toastbits.composekit.platform.PlatformPreferencesListener
-import dev.toastbits.composekit.platform.assert
-import dev.toastbits.composekit.platform.synchronized
+import dev.toastbits.composekit.util.platform.Platform
+import dev.toastbits.composekit.settings.PlatformSettingsListener
 import dev.toastbits.spms.socketapi.shared.SpMsPlayerRepeatMode
 import dev.toastbits.spms.socketapi.shared.SpMsPlayerState
 import io.ktor.client.HttpClient
@@ -47,6 +45,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlin.random.Random
 import kotlin.random.nextInt
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 private val UPDATE_INTERVAL: Duration = with (Duration) { 30.seconds }
 //private const val VOL_NOTIF_SHOW_DURATION: Long = 1000
@@ -81,7 +80,7 @@ abstract class PlayerServicePlayer(internal val service: PlayerService) {
     abstract fun onUndoStateChanged()
 
     private val prefs_listener =
-        PlatformPreferencesListener { _, key ->
+        PlatformSettingsListener { key ->
             when (key) {
 //                Settings.KEY_ACC_VOL_INTERCEPT_NOTIFICATION.name -> {
 //                    vol_notif_enabled = Settings.KEY_ACC_VOL_INTERCEPT_NOTIFICATION.get(preferences = prefs)
@@ -117,10 +116,10 @@ abstract class PlayerServicePlayer(internal val service: PlayerService) {
                 persistent_queue.savePersistentQueue()
             }
 
-            if (current_song_index == tracking_song_index + 1) {
+            if (current_item_index == tracking_song_index + 1) {
                 onSongEnded()
             }
-            tracking_song_index = current_song_index
+            tracking_song_index = current_item_index
             song_marked_as_watched = false
 
             radio.checkAutoRadioContinuation()
@@ -138,14 +137,14 @@ abstract class PlayerServicePlayer(internal val service: PlayerService) {
         }
 
         private suspend fun sendStatusWebhook(song: Song?): Result<Unit> = runCatching {
-            val webhook_url: String = context.settings.misc.STATUS_WEBHOOK_URL.get()
+            val webhook_url: String = context.settings.Misc.STATUS_WEBHOOK_URL.get()
             if (webhook_url.isBlank()) {
                 return@runCatching
             }
 
             val payload: MutableMap<String, JsonElement>
 
-            val user_payload: String = context.settings.misc.STATUS_WEBHOOK_PAYLOAD.get()
+            val user_payload: String = context.settings.Misc.STATUS_WEBHOOK_PAYLOAD.get()
             if (!user_payload.isBlank()) {
                 payload =
                     try {
@@ -209,7 +208,7 @@ abstract class PlayerServicePlayer(internal val service: PlayerService) {
 
     init {
         if (ProjectBuildConfig.MUTE_PLAYER == true && !Platform.DESKTOP.isCurrent()) {
-            service.volume = 0f
+            service.setVolume(0.0)
         }
 
         service.addListener(player_listener)
@@ -243,13 +242,13 @@ abstract class PlayerServicePlayer(internal val service: PlayerService) {
                 setActiveQueueIndex(active_queue_index + delta)
             }
         }
-        else if (active_queue_index >= service.song_count) {
-            active_queue_index = service.current_song_index
+        else if (active_queue_index >= service.item_count) {
+            active_queue_index = service.current_item_index
         }
     }
 
     fun setActiveQueueIndex(value: Int) {
-        active_queue_index = value.coerceAtLeast(service.current_song_index).coerceAtMost(service.song_count - 1)
+        active_queue_index = value.coerceAtLeast(service.current_item_index).coerceAtMost(service.item_count - 1)
     }
 
     fun cancelSession() {
@@ -262,7 +261,7 @@ abstract class PlayerServicePlayer(internal val service: PlayerService) {
         require(start_radio || !shuffle)
         require(at_index >= 0)
 
-        undo_handler.undoableAction(song_count > 0) {
+        undo_handler.undoableAction(item_count > 0) {
             if (at_index == 0 && song.id == service.getSong()?.id && start_radio) {
                 clearQueue(keep_current = true, save = false)
             }
@@ -282,6 +281,40 @@ abstract class PlayerServicePlayer(internal val service: PlayerService) {
                 skip_first = true,
                 shuffle = shuffle
             )
+        }
+    }
+
+
+    fun startRadioAtIndex(
+        index: Int,
+        source: RadioState.RadioStateSource,
+        shuffle: Boolean = false,
+        clear_queue: Boolean = true,
+        item_queue_index: Int? = null,
+        onSuccessfulLoad: (RadioInstance.LoadResult) -> Unit = {}
+    ) {
+        synchronized(radio) {
+            coroutine_scope.launch {
+                undo_handler.customUndoableAction { furtherAction ->
+                    if (clear_queue) {
+                        clearQueue(from = index, keep_current = false, save = false, cancel_radio = false)
+                    }
+
+                    return@customUndoableAction radio.setUndoableRadioState(
+                        RadioState(
+                            source = source,
+                            item_queue_index = item_queue_index,
+                            shuffle = shuffle
+                        ),
+                        furtherAction = { action: PlayerServicePlayer.() -> UndoRedoAction? ->
+                            furtherAction { action() }
+                        },
+                        onSuccessfulLoad = onSuccessfulLoad,
+                        insertion_index = index,
+                        clear_after = true
+                    )
+                }
+            }
         }
     }
 
@@ -307,26 +340,14 @@ abstract class PlayerServicePlayer(internal val service: PlayerService) {
                 val playlist_data: RemotePlaylistData? =
                     (final_item as? RemotePlaylist)?.loadData(context)?.getOrNull()
 
-                undo_handler.customUndoableAction { furtherAction ->
-                    if (playlist_data == null || playlist_data?.continuation != null) {
-                        clearQueue(from = index, keep_current = false, save = false, cancel_radio = false)
-                    }
-
-                    return@customUndoableAction radio.setUndoableRadioState(
-                        RadioState(
-                            item_uid = final_item.getUid(),
-                            item_queue_index = final_index,
-                            shuffle = shuffle
-                        ),
-                        furtherAction = { action: PlayerServicePlayer.() -> UndoRedoAction? ->
-                            furtherAction { action() }
-                        },
-                        onSuccessfulLoad = onSuccessfulLoad,
-                        insertion_index = index,
-                        skip_existing = false,
-                        clear_after = true
-                    )
-                }
+                startRadioAtIndex(
+                    index = index,
+                    source = RadioState.RadioStateSource.ItemUid(final_item.getUid()),
+                    shuffle = shuffle,
+                    clear_queue = playlist_data == null || playlist_data.continuation != null,
+                    item_queue_index = final_index,
+                    onSuccessfulLoad = onSuccessfulLoad
+                )
             }
         }
     }
@@ -337,8 +358,8 @@ abstract class PlayerServicePlayer(internal val service: PlayerService) {
         }
 
         undo_handler.undoableAction(null) {
-            for (i in song_count - 1 downTo from) {
-                if (keep_current && i == current_song_index) {
+            for (i in item_count - 1 downTo from) {
+                if (keep_current && i == current_item_index) {
                     continue
                 }
                 removeFromQueue(i, save = false)
@@ -355,9 +376,9 @@ abstract class PlayerServicePlayer(internal val service: PlayerService) {
     fun shuffleQueue(start: Int = 0, end: Int = -1) {
         require(start >= 0)
 
-        val shuffle_end = if (end < 0) song_count -1 else end
+        val shuffle_end = if (end < 0) item_count -1 else end
         val range: IntRange =
-            if (song_count - start <= 1) {
+            if (item_count - start <= 1) {
                 return
             }
             else {
@@ -391,8 +412,8 @@ abstract class PlayerServicePlayer(internal val service: PlayerService) {
             return
         }
 
-        assert(a in 0 until song_count)
-        assert(b in 0 until song_count)
+        assert(a in 0 until item_count)
+        assert(b in 0 until item_count)
 
         val offset_b = b + (if (b > a) -1 else 1)
 
@@ -409,10 +430,10 @@ abstract class PlayerServicePlayer(internal val service: PlayerService) {
     fun addToQueue(song: Song, index: Int? = null, is_active_queue: Boolean = false, start_radio: Boolean = false, save: Boolean = true): Int {
         val add_to_index: Int
         if (index == null) {
-            add_to_index = (song_count - 1).coerceAtLeast(0)
+            add_to_index = (item_count - 1).coerceAtLeast(0)
         }
         else {
-            add_to_index = if (index < song_count) index else (song_count - 1).coerceAtLeast(0)
+            add_to_index = if (index < item_count) index else (item_count - 1).coerceAtLeast(0)
         }
 
         if (is_active_queue) {
@@ -427,7 +448,7 @@ abstract class PlayerServicePlayer(internal val service: PlayerService) {
                 synchronized(radio) {
                     return@customUndoableAction radio.setUndoableRadioState(
                         RadioState(
-                            item_uid = song.getUid(),
+                            source = RadioState.RadioStateSource.ItemUid(song.getUid()),
                             item_queue_index = add_to_index
                         ),
                         furtherAction = { action ->
@@ -527,7 +548,7 @@ abstract class PlayerServicePlayer(internal val service: PlayerService) {
     }
 
     inline fun iterateSongs(action: (i: Int, song: Song) -> Unit) {
-        for (i in 0 until song_count) {
+        for (i in 0 until item_count) {
             action(i, getSong(i)!!)
         }
     }
@@ -540,7 +561,7 @@ abstract class PlayerServicePlayer(internal val service: PlayerService) {
                 if (
                     !song_marked_as_watched
                     && is_playing
-                    && with (Duration) { current_position_ms.milliseconds } >= SONG_MARK_WATCHED_POSITION
+                    && current_position_ms.milliseconds >= SONG_MARK_WATCHED_POSITION
                 ) {
                     song_marked_as_watched = true
 
@@ -550,7 +571,7 @@ abstract class PlayerServicePlayer(internal val service: PlayerService) {
                         song.incrementPlayCount(context)
 
                         val mark_endpoint = context.ytapi.user_auth_state?.MarkSongAsWatched
-                        if (mark_endpoint?.isImplemented() == true && context.settings.system.ADD_SONGS_TO_HISTORY.get()) {
+                        if (mark_endpoint?.isImplemented() == true && context.settings.Misc.ADD_SONGS_TO_HISTORY.get()) {
                             val result = mark_endpoint.markSongAsWatched(song.id)
                             result.onFailure {
                                 context.sendNotification(it)
@@ -588,33 +609,27 @@ abstract class PlayerServicePlayer(internal val service: PlayerService) {
 
     val state: SpMsPlayerState get() = service.state
     val is_playing: Boolean get() = service.is_playing
-    val song_count: Int get() = service.song_count
-    val current_song_index: Int get() = service.current_song_index
+    val item_count: Int get() = service.item_count
+    val current_item_index: Int get() = service.current_item_index
     val current_position_ms: Long get() = service.current_position_ms
     val duration_ms: Long get() = service.duration_ms
-    val has_focus: Boolean get() = service.has_focus
 
     val radio_instance: RadioInstance get() = radio.instance
 
-    var repeat_mode: SpMsPlayerRepeatMode
+    val repeat_mode: SpMsPlayerRepeatMode
         get() = service.repeat_mode
-        set(value) {
-            service.repeat_mode = value
-        }
-    var volume: Float
+
+    val volume: Float
         get() = service.volume
-        set(value) {
-            service.volume = value
-        }
 
     fun play() = service.play()
     fun pause() = service.pause()
     fun playPause() = service.playPause()
 
-    fun seekTo(position_ms: Long) = service.seekTo(position_ms)
-    fun seekToSong(index: Int) = service.seekToSong(index)
+    fun seekTo(position_ms: Long) = service.seekToTime(position_ms)
+    fun seekToSong(index: Int) = service.seekToItem(index)
     fun seekToNext() = service.seekToNext()
-    fun seekToPrevious() = service.seekToPrevious()
+    fun seekToPrevious(repeat_threshold: Duration? = null) = service.seekToPrevious(repeat_threshold)
     fun undoSeek() = service.undoSeek()
 
     fun getSong(): Song? = service.getSong()

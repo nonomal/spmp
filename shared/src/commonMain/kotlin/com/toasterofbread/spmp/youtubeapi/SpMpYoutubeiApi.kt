@@ -19,7 +19,7 @@ import com.toasterofbread.spmp.model.settings.unpackSetData
 import com.toasterofbread.spmp.platform.AppContext
 import com.toasterofbread.spmp.platform.getDataLanguage
 import com.toasterofbread.spmp.resources.Language
-import dev.toastbits.composekit.platform.PlatformPreferencesListener
+import dev.toastbits.composekit.settings.PlatformSettingsListener
 import dev.toastbits.ytmkt.endpoint.ArtistWithParamsRow
 import dev.toastbits.ytmkt.endpoint.SearchResults
 import dev.toastbits.ytmkt.endpoint.SongFeedLoadResult
@@ -40,6 +40,7 @@ import dev.toastbits.ytmkt.model.external.YoutubePage
 import dev.toastbits.ytmkt.model.external.mediaitem.YtmArtist
 import dev.toastbits.ytmkt.model.external.mediaitem.YtmPlaylist
 import dev.toastbits.ytmkt.model.external.mediaitem.YtmSong
+import dev.toastbits.ytmkt.radio.BuiltInRadioContinuation
 import dev.toastbits.ytmkt.radio.RadioContinuation
 import dev.toastbits.ytmkt.uistrings.UiString
 import kotlinx.coroutines.launch
@@ -62,13 +63,13 @@ internal class SpMpYoutubeiApi(
 
     override var user_auth_state: YoutubeiAuthenticationState? by mutableStateOf(null)
 
-    private val prefs_listener: PlatformPreferencesListener =
-        PlatformPreferencesListener { _, key ->
+    private val prefs_listener: PlatformSettingsListener =
+        PlatformSettingsListener { key ->
             when (key) {
-                context.settings.youtube_auth.YTM_AUTH.key -> context.coroutine_scope.launch { user_auth_state = getCurrentUserAuthState() }
-                context.settings.system.LANG_DATA.key -> context.coroutine_scope.launch { _data_language = context.getDataLanguage() }
-                context.settings.streaming.VIDEO_FORMATS_METHOD.key -> context.coroutine_scope.launch {
-                    _VideoFormats = context.settings.streaming.VIDEO_FORMATS_METHOD.get().instantiate(this@SpMpYoutubeiApi)
+                context.settings.YoutubeAuth.YTM_AUTH.key -> context.coroutineScope.launch { user_auth_state = getCurrentUserAuthState() }
+                context.settings.Interface.DATA_LOCALE.key -> context.coroutineScope.launch { _data_language = context.getDataLanguage().toTag() }
+                context.settings.Streaming.VIDEO_FORMATS_METHOD.key -> context.coroutineScope.launch {
+                    _VideoFormats = context.settings.Streaming.VIDEO_FORMATS_METHOD.get().instantiate(this@SpMpYoutubeiApi)
                 }
             }
         }
@@ -76,19 +77,19 @@ internal class SpMpYoutubeiApi(
     init {
         context.getPrefs().addListener(prefs_listener)
 
-        context.coroutine_scope.launch {
+        context.coroutineScope.launch {
             user_auth_state = getCurrentUserAuthState()
         }
-        context.coroutine_scope.launch {
-            _data_language = context.getDataLanguage()
+        context.coroutineScope.launch {
+            _data_language = context.getDataLanguage().toTag()
         }
-        context.coroutine_scope.launch {
-            _VideoFormats = context.settings.streaming.VIDEO_FORMATS_METHOD.get().instantiate(this@SpMpYoutubeiApi)
+        context.coroutineScope.launch {
+            _VideoFormats = context.settings.Streaming.VIDEO_FORMATS_METHOD.get().instantiate(this@SpMpYoutubeiApi)
         }
     }
 
     private suspend fun getCurrentUserAuthState(): SpMpYoutubeiAuthenticationState? =
-        ApiAuthenticationState.unpackSetData(context.settings.youtube_auth.YTM_AUTH.get(), context)
+        ApiAuthenticationState.unpackSetData(context.settings.YoutubeAuth.YTM_AUTH.get(), context)
             ?.let { data ->
                 SpMpYoutubeiAuthenticationState(context.database, this, data.first, data.second)
             }
@@ -143,7 +144,7 @@ internal class SpMpYoutubeiApi(
     inner class LoadPlaylistDataEndpoint: YTMLoadPlaylistEndpoint(this) {
         override suspend fun loadPlaylist(
             playlist_id: String,
-            continuation: RadioContinuation?,
+            continuation: BuiltInRadioContinuation?,
             browse_params: String?,
             playlist_url: String?,
             use_non_music_api: Boolean
@@ -162,7 +163,7 @@ internal class SpMpYoutubeiApi(
 
         suspend fun loadPlaylistData(
             playlist_id: String,
-            continuation: RadioContinuation? = null,
+            continuation: BuiltInRadioContinuation? = null,
             browse_params: String? = null,
             playlist_url: String? = null,
             use_non_music_api: Boolean = false,

@@ -1,14 +1,25 @@
 package plugin.shared
 
 import org.gradle.api.Project
+import org.gradle.kotlin.dsl.newInstance
+import org.gradle.process.ExecOperations
 import java.io.ByteArrayOutputStream
+import javax.inject.Inject
 
 val Project.Command: CommandClass get() = CommandClass(this)
+
+val Project.execOperations: ExecOperations
+    get() = objects.newInstance<InjectedExecOps>().getExecOps()
+
+private interface InjectedExecOps {
+    @Inject
+    fun getExecOps(): ExecOperations
+}
 
 class CommandClass(project: Project): Project by project {
     fun cmd(vararg args: String): String {
         val out = ByteArrayOutputStream()
-        exec {
+        execOperations.exec {
             commandLine(args.toList())
             standardOutput = out
         }

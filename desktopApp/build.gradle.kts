@@ -4,6 +4,7 @@ import org.gradle.internal.os.OperatingSystem
 import org.gradle.jvm.tasks.Jar
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.compose.desktop.application.tasks.AbstractJPackageTask
+import plugin.shared.execOperations
 import plugin.spmp.SpMpDeps
 import plugin.spmp.getDeps
 import plugins.shared.DesktopUtils
@@ -18,6 +19,7 @@ plugins {
     kotlin("multiplatform")
     kotlin("plugin.compose")
     id("org.jetbrains.compose")
+    id("dev.toastbits.gradleremoterunner")
 }
 
 fun getString(key: String): String {
@@ -46,7 +48,7 @@ fun getString(key: String): String {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(23)
 
     jvm()
     sourceSets {
@@ -58,7 +60,9 @@ kotlin {
                 implementation(compose.components.resources)
                 implementation(project(":shared"))
 
-                implementation(deps.get("dev.toastbits.composekit:library"))
+                for (dependency in deps.getAllComposeKit()) {
+                    implementation(dependency)
+                }
 
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.6.4")
 
@@ -183,7 +187,7 @@ abstract class ActuallyPackageAppImageTask: DefaultTask() {
 
         runBlocking {
             project.logger.lifecycle("Executing appimagetool with arch $arch and output ${appimage_output.relativeTo(project.rootDir)}")
-            project.exec {
+            project.execOperations.exec {
                 environment("ARCH", arch)
                 workingDir = appimage_dst
                 executable = "appimagetool"

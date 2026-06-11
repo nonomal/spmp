@@ -17,10 +17,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import dev.toastbits.composekit.utils.common.getContrasted
-import dev.toastbits.composekit.utils.common.getInnerSquareSizeOfCircle
-import dev.toastbits.composekit.utils.composable.crossOut
-import dev.toastbits.composekit.utils.modifier.background
+import dev.toastbits.composekit.util.getContrasted
+import dev.toastbits.composekit.util.getInnerSquareSizeOfCircle
+import dev.toastbits.composekit.components.utils.composable.crossOut
+import dev.toastbits.composekit.components.utils.modifier.background
 import dev.toastbits.spms.socketapi.shared.SpMsPlayerRepeatMode
 import com.toasterofbread.spmp.service.playercontroller.PlayerState
 import kotlin.math.roundToInt
@@ -37,12 +37,13 @@ fun RepeatButton(getBackgroundColour: () -> Color, modifier: Modifier = Modifier
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = {
-                    player.controller?.repeat_mode =
+                    player.controller?.setRepeatMode(
                         when (player.controller?.repeat_mode) {
                             SpMsPlayerRepeatMode.ALL -> SpMsPlayerRepeatMode.ONE
                             SpMsPlayerRepeatMode.ONE -> SpMsPlayerRepeatMode.NONE
                             else -> SpMsPlayerRepeatMode.ALL
                         }
+                    )
                 }
             )
             .crossOut(

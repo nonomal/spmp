@@ -1,7 +1,14 @@
-<p>
-    <a href="readme/README-ja.md">日本語のREADMEへ</a>
-    <a href="https://discord.gg/B4uY4FkkJ3"><img src="https://img.shields.io/discord/1133321339495788625?style=for-the-badge&logo=discord&label=Discord&color=4f58d6" align="right"></a>
-</p>
+# SpMp has been succeeded by [Kanon](https://gitlab.com/syk.sh/kanon)
+
+SpMp was my first large-scale Android/Compose project, and after over two years of development it became very difficult to maintain. 
+Kanon is a rewrite-turned-successor of SpMp, and shares the same basic features and core design.
+
+While SpMp remains available on this repository, it is no longer maintained, and has not been since late 2024.
+If you use SpMp, please be aware that you may encounter bugs or broken features, and that these will not be fixed.
+
+---
+
+Original README:
 
 <br>
 

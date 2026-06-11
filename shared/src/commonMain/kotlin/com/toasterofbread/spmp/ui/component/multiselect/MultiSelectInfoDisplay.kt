@@ -14,7 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
-import dev.toastbits.composekit.platform.composable.BackHandler
+import dev.toastbits.composekit.components.platform.composable.BackHandler
 import com.toasterofbread.spmp.model.mediaitem.MediaItem
 import com.toasterofbread.spmp.ui.component.multiselect_context.MultiSelectGeneralActions
 import com.toasterofbread.spmp.ui.component.multiselect_context.MultiSelectOverflowActions
@@ -174,7 +174,9 @@ fun MediaItemMultiSelectContext.MultiSelectInfoDisplayContent(
                         Text(title_text)
                     },
                     text = {
-                        Column {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
                             MultiSelectOverflowActions(this@MultiSelectInfoDisplayContent, additionalSelectedItemActions)
                         }
                     }

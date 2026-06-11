@@ -1,12 +1,12 @@
 @file:Suppress("UnstableApiUsage")
 
+import com.android.build.api.dsl.ApplicationVariantDimension
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
-import java.io.FileInputStream
-import java.util.Properties
-import com.android.build.api.dsl.ApplicationVariantDimension
 import plugin.spmp.SpMpDeps
 import plugin.spmp.getDeps
+import java.io.FileInputStream
+import java.util.Properties
 
 plugins {
     kotlin("multiplatform")
@@ -57,7 +57,9 @@ kotlin {
         val androidMain by getting {
             dependencies {
                 implementation(project(":shared"))
-                implementation(deps.get("dev.toastbits.composekit:library"))
+                for (dependency in deps.getAllComposeKit()) {
+                    implementation(dependency)
+                }
             }
         }
     }
@@ -95,14 +97,14 @@ android {
 
         getByName("debug") {
             applicationIdSuffix = ".debug"
-            setProperty("archivesBaseName", getApkName())
+            project.ext.set("archivesBaseName", getApkName())
 
             manifestPlaceholders["appAuthRedirectScheme"] = "com.toasterofbread.spmp.debug"
             manifestPlaceholders["appName"] = getString("app_name_debug")
             signingConfig = signingConfigs.getByName("main")
         }
         getByName("release") {
-            setProperty("archivesBaseName", getApkName())
+            project.ext.set("archivesBaseName", getApkName())
 
             isMinifyEnabled = true
             isShrinkResources = true
@@ -124,14 +126,14 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_22
-        targetCompatibility = JavaVersion.VERSION_22
+        sourceCompatibility = JavaVersion.VERSION_23
+        targetCompatibility = JavaVersion.VERSION_23
         isCoreLibraryDesugaringEnabled = true
     }
 
     kotlin {
         jvmToolchain {
-            version = "17"
+            version = "23"
         }
     }
 
@@ -164,6 +166,19 @@ android {
         assets.srcDirs("src/main/assets")
         dependencies {
             implementation(project(":shared"))
+
+            // Widget
+            val glance_version = "1.1.1"
+            implementation("androidx.glance:glance-appwidget:$glance_version")
+            implementation("androidx.glance:glance-material3:$glance_version")
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+            implementation(compose.runtime)
+//            implementation(compose.foundation)
+//            implementation(compose.materialIconsExtended)
+//            implementation(compose.ui)
+//            implementation(compose.material)
+            implementation(compose.material3)
+            implementation(compose.components.resources)
         }
         manifest {
             srcFile("src/main/AndroidManifest.xml")
